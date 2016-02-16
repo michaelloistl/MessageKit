@@ -1,0 +1,24 @@
+PODS:
+  - ContextLabel (0.2.0)
+  - PureLayout (3.0.1)
+
+DEPENDENCIES:
+  - ContextLabel (from `https://github.com/michaelloistl/ContextLabel.git`, branch
+    `develop`)
+  - PureLayout
+
+EXTERNAL SOURCES:
+  ContextLabel:
+    :branch: develop
+    :git: https://github.com/michaelloistl/ContextLabel.git
+
+CHECKOUT OPTIONS:
+  ContextLabel:
+    :commit: cbe2432d53ac9e9b40bb4f5b3d9071b74ca6f3c4
+    :git: https://github.com/michaelloistl/ContextLabel.git
+
+SPEC CHECKSUMS:
+  ContextLabel: aadbf930874ab52109a65a255f8518197316882e
+  PureLayout: f35f5384c9c4e4479df041dbe33ad7577b71ddfb
+
+COCOAPODS: 0.39.0
