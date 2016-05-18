@@ -55,9 +55,7 @@ public class MessageKitTableViewController: UITableViewController, MessageKitTab
         _view.inputBackgroundView.backgroundColor = UIColor.clearColor()
         
         _view.textViewInsets = UIEdgeInsetsZero
-        _view.textViewContentInset = UIEdgeInsetsMake(3, 0, 0, 0)
-        _view.textView.textContainerInset = UIEdgeInsetsMake(0, 0, 0, 0)
-        
+    
 //        _view.leftButton.setTitle(nil, forState: .Normal)
 //        _view.leftButton.setImage(UIImage(named: "ic_nav_add"), forState: .Normal)
         

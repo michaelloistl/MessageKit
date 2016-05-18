@@ -28,21 +28,32 @@ public protocol MessageKitComposerViewDelegate {
 
 public class MessageKitComposerView: UIView, UITextViewDelegate {
 
+    public enum ComposerMode {
+        case New
+        case Edit
+    }
+    
     public var dataSource: MessageKitComposerViewDataSource!
     public var delegate: MessageKitComposerViewDelegate!
 
     public var numberOfLines: Int = 5
+    public var lineSpacing: CGFloat = 0
     
     public var inputBackgroundViewInsets = UIEdgeInsetsMake(8, 55, 8, 55)
-    public var textViewInsets = UIEdgeInsetsMake(0, 8, 0, 8)
+    public var textViewInsets = UIEdgeInsetsMake(8, 8, 8, 8)
     
     public var placeholderLabelOffset = UIOffsetMake(0, 0)
     public var leftButtonCenterOffset = UIOffsetMake(0, 0)
     public var rightButtonCenterOffset = UIOffsetMake(0, 0)
     
-    public var textViewContentInset = UIEdgeInsetsMake(8, 0, 0, 0) {
+    public var mode: ComposerMode = .New {
         didSet {
-        textView.contentInset = textViewContentInset
+            switch mode {
+            case .New:
+                rightButton.setTitle("Send", forState: .Normal)
+            case .Edit:
+                rightButton.setTitle("Update", forState: .Normal)
+            }
         }
     }
     
@@ -105,7 +116,7 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         _button.setTitleColor(UIColor.blackColor().colorWithAlphaComponent(0.5), forState: .Disabled)
         _button.titleLabel?.font = UIFont.systemFontOfSize(17)
         
-        _button.addTarget(self, action: Selector("leftButtonTouchedUpInside:"), forControlEvents: .TouchUpInside)
+        _button.addTarget(self, action: #selector(MessageKitComposerView.leftButtonTouchedUpInside(_:)), forControlEvents: .TouchUpInside)
         
         return _button
     }()
@@ -118,7 +129,7 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         _button.titleLabel?.font = UIFont.systemFontOfSize(17)
         _button.enabled = false
         
-        _button.addTarget(self, action: Selector("rightButtonTouchedUpInside:"), forControlEvents: .TouchUpInside)
+        _button.addTarget(self, action: #selector(MessageKitComposerView.rightButtonTouchedUpInside(_:)), forControlEvents: .TouchUpInside)
         
         return _button
     }()
@@ -145,7 +156,7 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         _textView.delegate = self
         _textView.scrollsToTop = false
         
-        _textView.contentInset = self.textViewContentInset
+        _textView.contentInset = UIEdgeInsetsZero
         _textView.textContainerInset = UIEdgeInsetsZero
         _textView.textContainer.lineFragmentPadding = 0
         
@@ -207,7 +218,7 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         inputBackgroundView.addSubview(textView)
         
         // Notifications
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("handleKeyboardFrameDidChangeNotification:"), name: KeyboardFrameDidChangeNotification, object: nil)
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(MessageKitComposerView.handleKeyboardFrameDidChangeNotification(_:)), name: KeyboardFrameDidChangeNotification, object: nil)
         
         setupConstraints()
     }
@@ -279,7 +290,6 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         }
         
         // contentView
-        
     }
     
     public override func isFirstResponder() -> Bool {
@@ -296,6 +306,8 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
     
     public override func didMoveToSuperview() {
         super.didMoveToSuperview()
+        
+        setComposerHeightWithText(nil)
         
         layoutSubviews()
     }
@@ -344,19 +356,33 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
     
     func setComposerHeightWithText(text: String?) {
         let width = CGRectGetWidth(textView.bounds)
-        var height = minComposerHeight
+        var textHeight = textView.font?.lineHeight ?? 0
+        var maxTextHeight = textHeight
+        
         if let text = text, font = textView.font {
             let maxSize = CGSizeMake(width, CGFloat.max)
-            let attributes: [String : AnyObject] = [NSFontAttributeName: font]
+            
+            let mutableParagraphStyle = NSMutableParagraphStyle()
+            mutableParagraphStyle.alignment = textView.textAlignment
+            mutableParagraphStyle.lineSpacing = lineSpacing
+            
+            let attributes: [String : AnyObject] = [NSFontAttributeName: font, NSParagraphStyleAttributeName: mutableParagraphStyle]
             let attributedString = NSAttributedString(string: text, attributes: attributes)
             
-            let textHeight = ceil(attributedString.boundingRectWithSize(maxSize, options: [.UsesLineFragmentOrigin], context: nil).height)
-            let maxTextHeight = font.lineHeight * CGFloat(numberOfLines)
+            textHeight = ceil(attributedString.boundingRectWithSize(maxSize, options: [.UsesLineFragmentOrigin], context: nil).height)
+            textHeight = max(textHeight, font.lineHeight)
             
-            height = inputBackgroundViewInsets.top + textViewInsets.top + textViewContentInset.top + min(textHeight, maxTextHeight) + textViewContentInset.bottom + textViewInsets.bottom + inputBackgroundViewInsets.bottom
+            maxTextHeight = font.lineHeight * CGFloat(numberOfLines)
+            
+            textView.scrollEnabled = (textHeight > maxTextHeight)
         }
 
-        _composerHeight = max(height, minComposerHeight)
+        let height = inputBackgroundViewInsets.top + textViewInsets.top + min(textHeight, maxTextHeight) + textViewInsets.bottom + inputBackgroundViewInsets.bottom + lineSpacing
+        let newComposerheight = max(height, minComposerHeight)
+        
+        if _composerHeight != newComposerheight {
+            _composerHeight = newComposerheight
+        }
     }
     
     // MARK: Actions
@@ -389,13 +415,15 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
     public func textView(textView: UITextView, shouldChangeTextInRange range: NSRange, replacementText text: String) -> Bool {
         let string = textView.text as NSString
         let newText = string.stringByReplacingCharactersInRange(range, withString: text)
-
+        
         setComposerHeightWithText(newText)
-
+        
         return true
     }
     
     public func textViewDidChangeSelection(textView: UITextView) {
+        setComposerHeightWithText(textView.text)
+        
         rightButton.enabled = textView.text.characters.count > 0
         placeholderLabel.hidden = textView.text.characters.count > 0
     }
