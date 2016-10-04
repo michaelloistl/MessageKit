@@ -14,6 +14,11 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
+		<key>Pods-MessageKitTests.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
 		<key>PureLayout.xcscheme</key>
 		<dict>
 			<key>isShown</key>
@@ -22,12 +27,17 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
-		<key>0B26A90BCEE7638DD7C4276D9431100E</key>
+		<key>54D93BA3B0BD7C1D980EE59FA0610EF1</key>
 		<dict>
 			<key>primary</key>
 			<true/>
 		</dict>
-		<key>980264FAC3A20E483FE0C859744CCABF</key>
+		<key>6382D53F050B90AB17916516D44DD422</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>D199CC732F46B54FE26C1D9ADCAE873E</key>
 		<dict>
 			<key>primary</key>
 			<true/>

@@ -9,55 +9,80 @@
 import Foundation
 import UIKit
 
-public protocol ContextLabelDelegate {
-    func contextLabel(contextLabel: ContextLabel, beganTouchOf text: String, with linkRangeResult: LinkRangeResult)
-    func contextLabel(contextLabel: ContextLabel, movedTouchTo text: String, with linkRangeResult: LinkRangeResult)
-    func contextLabel(contextLabel: ContextLabel, endedTouchOf text: String, with linkRangeResult: LinkRangeResult)
+fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l < r
+  case (nil, _?):
+    return true
+  default:
+    return false
+  }
 }
 
-public class ContextLabelData: NSObject {
+fileprivate func <= <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l <= r
+  default:
+    return !(rhs < lhs)
+  }
+}
+
+open class ContextLabelData: NSObject {
     var attributedString: NSAttributedString
-    var linkRangeResults: Array<LinkRangeResult>
-    var userInfo: Dictionary<NSObject, AnyObject>?
+    var linkResults: [LinkResult]
+    var userInfo: [NSObject: AnyObject]?
     
     // MARK: Initializers
     
-    init(attributedString: NSAttributedString, linkRangeResults: [LinkRangeResult]) {
+    init(attributedString: NSAttributedString, linkResults: [LinkResult]) {
         self.attributedString = attributedString
-        self.linkRangeResults = linkRangeResults
+        self.linkResults = linkResults
         super.init()
     }
 }
 
-public class LinkRangeResult: NSObject {
-    var linkDetectionType: ContextLabel.LinkDetectionType
-    var linkRange: Range<String.Index>
-    var linkString: String
-    var textLink: ContextLabel.TextLink?
-    
-    // MARK: Initializers
-    
-    init(linkDetectionType: ContextLabel.LinkDetectionType, linkRange: Range<String.Index>, linkString: String, textLink: ContextLabel.TextLink?) {
-        self.linkDetectionType = linkDetectionType
-        self.linkRange = linkRange
-        self.linkString = linkString
-        self.textLink = textLink
+public struct LinkResult {
+    public let detectionType: ContextLabel.LinkDetectionType
+    public let range: NSRange
+    public let text: String
+    public let textLink: TextLink?
+}
+
+public struct TouchResult {
+    public let linkResult: LinkResult
+    public let touches: Set<UITouch>
+    public let event: UIEvent?
+    public let state: UIGestureRecognizerState
+}
+
+
+public struct TextLink {
+    public let text: String
+    public let range: NSRange?
+    public let options: NSString.CompareOptions
+    public let action: ()->()
         
-        super.init()
+    public init(text: String, range: NSRange? = nil, options: NSString.CompareOptions = [], action: @escaping ()->()) {
+        self.text = text
+        self.range = range
+        self.options = options
+        self.action = action
     }
 }
 
-public class ContextLabel: UILabel, NSLayoutManagerDelegate {
+open class ContextLabel: UILabel, NSLayoutManagerDelegate {
     
-    struct LinkDetectionType : OptionSetType {
-        typealias RawValue = UInt
-        private var value: UInt = 0
+    public struct LinkDetectionType : OptionSet {
+        public typealias RawValue = UInt
+        fileprivate var value: UInt = 0
         init(_ value: UInt) { self.value = value }
-        init(rawValue value: UInt) { self.value = value }
+        public init(rawValue value: UInt) { self.value = value }
         init(nilLiteral: ()) { self.value = 0 }
         static var allZeros: LinkDetectionType { return self.init(0) }
-        static func fromMask(raw: UInt) -> LinkDetectionType { return self.init(raw) }
-        var rawValue: UInt { return self.value }
+        static func fromMask(_ raw: UInt) -> LinkDetectionType { return self.init(raw) }
+        public var rawValue: UInt { return self.value }
         
         static var None: LinkDetectionType { return self.init(0) }
         static var UserHandle: LinkDetectionType { return LinkDetectionType(1 << 0) }
@@ -65,99 +90,96 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
         static var URL: LinkDetectionType { return LinkDetectionType(1 << 2) }
         static var TextLink: LinkDetectionType { return LinkDetectionType(1 << 3) }
     }
-    
-    public struct TextLink {
-        var text: String
-        var action: ()->()
-    }
-    
-    // Delegate
-    public var delegate: ContextLabelDelegate?
-    
+  
+    let hashtagRegex = "(?<=\\s|^)#(\\w*[A-Za-z&_-]+\\w*)"
+    let userHandleRegex = "(?<=\\s|^)@(\\w*[A-Za-z&_-]+\\w*)"
     
     // MARK: - Config Properties
     
     // LineSpacing
     public var lineSpacing: CGFloat?
+    public var lineHeightMultiple: CGFloat?
     
     // TextColors
-    public var textLinkTextColor = UIColor(red: 45.0/255.0, green: 113.0/255.0, blue: 178.0/255.0, alpha: 1.0)
-    public var userHandleTextColor = UIColor(red: 71.0/255.0, green: 90.0/255.0, blue: 109.0/255.0, alpha: 1.0)
-    public var hashtagTextColor = UIColor(red: 151.0/255.0, green: 154.0/255.0, blue: 158.0/255.0, alpha: 1.0)
-    public var linkTextColor = UIColor(red: 45.0/255.0, green: 113.0/255.0, blue: 178.0/255.0, alpha: 1.0)
     
-    public var textLinkHighlightedTextColor: UIColor?
-    public var userHandleHighlightedTextColor: UIColor?
-    public var hashtagHighlightedTextColor: UIColor?
-    public var linkHighlightedTextColor: UIColor?
+    public var textLinkTextColor: (LinkResult) -> (textColor: UIColor, highlightedTextColor: UIColor?) = { _ in
+        return (UIColor(red: 45.0/255.0, green: 113.0/255.0, blue: 178.0/255.0, alpha: 1.0), nil)
+    }
     
-    // MARK: - Private Properties
+    public var userHandleTextColor: (LinkResult) -> (textColor: UIColor, highlightedTextColor: UIColor?) = { _ in
+        return (UIColor(red: 71.0/255.0, green: 90.0/255.0, blue: 109.0/255.0, alpha: 1.0), nil)
+    }
     
-    private var privateTextLinkHighlightedTextColor: UIColor {
-        get {
-            if let textLinkHighlightedTextColor = textLinkHighlightedTextColor {
-                return textLinkHighlightedTextColor
-            } else {
-                return highlightedTextColorForTextColor(textLinkTextColor)
-            }
+    public var hashtagTextColor: (LinkResult) -> (textColor: UIColor, highlightedTextColor: UIColor?) = { _ in
+        return (UIColor(red: 151.0/255.0, green: 154.0/255.0, blue: 158.0/255.0, alpha: 1.0), nil)
+    }
+    
+    public var linkTextColor: (LinkResult) -> (textColor: UIColor, highlightedTextColor: UIColor?) = { _ in
+        return (UIColor(red: 45.0/255.0, green: 113.0/255.0, blue: 178.0/255.0, alpha: 1.0), nil)
+    }
+    
+    // UnderlineStyle
+    
+    public var textLinkUnderlineStyle: (LinkResult) -> (NSUnderlineStyle) = { _ in
+        return .styleNone
+    }
+    
+    public var userHandleUnderlineStyle: (LinkResult) -> (NSUnderlineStyle) = { _ in
+        return .styleNone
+    }
+    
+    public var hashtagUnderlineStyle: (LinkResult) -> (NSUnderlineStyle) = { _ in
+        return .styleNone
+    }
+    
+    public var linkUnderlineStyle: (LinkResult) -> (NSUnderlineStyle) = { _ in
+        return .styleNone
+    }
+    
+    // Autolayout
+    open var preferedHeight: CGFloat? {
+        didSet {
+            invalidateIntrinsicContentSize()
         }
     }
     
-    private var privateUserHandleHighlightedTextColor: UIColor {
-        get {
-            if let userHandleHighlightedTextColor = userHandleHighlightedTextColor {
-                return userHandleHighlightedTextColor
-            } else {
-                return highlightedTextColorForTextColor(userHandleTextColor)
-            }
-        }
-    }
-
-    private var privateHashtagHighlightedTextColor: UIColor {
-        if let hashtagHighlightedTextColor = hashtagHighlightedTextColor {
-            return hashtagHighlightedTextColor
-        } else {
-            return highlightedTextColorForTextColor(hashtagTextColor)
-        }
-    }
-
-    private var privateLinkHighlightedTextColor: UIColor {
-        if let linkHighlightedTextColor = linkHighlightedTextColor {
-            return linkHighlightedTextColor
-        } else {
-            return highlightedTextColorForTextColor(linkTextColor)
+    open var preferedWidth: CGFloat? {
+        didSet {
+            invalidateIntrinsicContentSize()
         }
     }
 
     // MARK: - Properties
     
+    public var didTouch: (TouchResult) -> () = { _ in }
+    
     // Automatic detection of links, hashtags and usernames. When this is enabled links
     // are coloured using the textColor property above
-    var automaticLinkDetectionEnabled: Bool = true {
+    public var automaticLinkDetectionEnabled: Bool = true {
         didSet {
             setContextLabelDataWithText(nil)
         }
     }
     
     // linkDetectionTypes
-    var linkDetectionTypes: LinkDetectionType = [.UserHandle, .Hashtag, .URL, .TextLink] {
+    public var linkDetectionTypes: LinkDetectionType = [.UserHandle, .Hashtag, .URL, .TextLink] {
         didSet {
             setContextLabelDataWithText(nil)
         }
     }
     
     // Array of link texts
-    var textLinks: [TextLink]? {
+    public var textLinks: [TextLink]? {
         didSet {
             if let textLinks = textLinks {
                 if let contextLabelData = contextLabelData {
                     
-                    // Add linkRangeResults for textLinks
-                    let textLinkRangeResults = getRangesForTextLinks(textLinks)
-                    contextLabelData.linkRangeResults += textLinkRangeResults
+                    // Add linkResults for textLinks
+                    let linkResults = linkResultsForTextLinks(textLinks)
+                    contextLabelData.linkResults += linkResults
                     
-                    // Addd attributes for textLinkRangeResults
-                    let attributedString = addLinkAttributesToAttributedString(contextLabelData.attributedString, withLinkRangeResults: textLinkRangeResults)
+                    // Addd attributes for textLinkResults
+                    let attributedString = addLinkAttributesTo(contextLabelData.attributedString, with: linkResults)
                     contextLabelData.attributedString = attributedString
                     
                     // Set attributedText
@@ -167,11 +189,11 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
         }
     }
     
-    // Selected linkRangeResult
-    private var selectedLinkRangeResult: LinkRangeResult?
+    // Selected linkResult
+    fileprivate var selectedLinkResult: LinkResult?
     
     // Cachable Object to encapsulate all relevant data to restore ContextLabel values
-    var contextLabelData: ContextLabelData? {
+    public var contextLabelData: ContextLabelData? {
         didSet {
             if let contextLabelData = contextLabelData {
                 // Set attributedText
@@ -184,18 +206,18 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
     }
     
     // Specifies the space in which to render text
-    lazy var textContainer: NSTextContainer = {
+    fileprivate lazy var textContainer: NSTextContainer = {
         let _textContainer = NSTextContainer()
         _textContainer.lineFragmentPadding = 0
         _textContainer.maximumNumberOfLines = self.numberOfLines
         _textContainer.lineBreakMode = self.lineBreakMode
-        _textContainer.size = CGSizeMake(CGRectGetWidth(self.bounds), CGFloat.max)
+        _textContainer.size = CGSize(width: self.bounds.width, height: CGFloat.greatestFiniteMagnitude)
         
         return _textContainer
         }()
     
     // Used to control layout of glyphs and rendering
-    lazy var layoutManager: NSLayoutManager = {
+    fileprivate lazy var layoutManager: NSLayoutManager = {
         let _layoutManager = NSLayoutManager()
         _layoutManager.delegate = self
         _layoutManager.addTextContainer(self.textContainer)
@@ -204,7 +226,7 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
         }()
     
     // Backing storage for text that is rendered by the layout manager
-    lazy var textStorage: NSTextStorage? = {
+    fileprivate lazy var textStorage: NSTextStorage? = {
         let _textStorage = NSTextStorage()
         _textStorage.addLayoutManager(self.layoutManager)
         
@@ -214,133 +236,132 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
     
     // MARK: - Properties override
 
-    public override var frame: CGRect {
+    open override var frame: CGRect {
         didSet {
-            textContainer.size = CGSizeMake(CGRectGetWidth(self.bounds), CGFloat.max)
+            textContainer.size = CGSize(width: self.bounds.width, height: CGFloat.greatestFiniteMagnitude)
         }
     }
 
-    public override var bounds: CGRect {
+    open override var bounds: CGRect {
         didSet {
-            textContainer.size = CGSizeMake(CGRectGetWidth(self.bounds), CGFloat.max)
+            textContainer.size = CGSize(width: self.bounds.width, height: CGFloat.greatestFiniteMagnitude)
         }
     }
     
-    public override var numberOfLines: Int {
+    open override var numberOfLines: Int {
         didSet {
             textContainer.maximumNumberOfLines = numberOfLines
         }
     }
     
-    public override var text: String! {
+    open override var text: String! {
         didSet {
             setContextLabelDataWithText(text)
         }
     }
-    
     
     // MARK: - Initializations
     
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
         
-        setupTextSystem()
+        setup()
     }
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
         
-        setupTextSystem()
+        setup()
     }
     
-    public convenience init(with userHandleTextColor: UIColor, hashtagTextColor: UIColor, linkTextColor: UIColor) {
-        self.init(frame:CGRectZero)
+    public convenience init(frame: CGRect, didTouch: @escaping (TouchResult) -> ()) {
+        self.init(frame: frame)
         
-        self.userHandleTextColor = userHandleTextColor
-        self.hashtagTextColor = hashtagTextColor
-        self.linkTextColor = linkTextColor
+        self.didTouch = didTouch
+        setup()
     }
-    
     
     // MARK: - Override Methods
     
-    public override func layoutSubviews() {
-        super.layoutSubviews()
+    open override var intrinsicContentSize : CGSize {
+        var width = super.intrinsicContentSize.width
+        var height = super.intrinsicContentSize.height
         
-        textContainer.size = CGSizeMake(CGRectGetWidth(self.bounds), CGFloat.max)
-    }
-    
-    public override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
-        if let linkRangeResult = getLinkRangeResultWithTouches(touches) {
-            
-            selectedLinkRangeResult = linkRangeResult
-            
-            // Call delegate
-            if let selectedLinkRangeResult = selectedLinkRangeResult {
-                delegate?.contextLabel(self, beganTouchOf: selectedLinkRangeResult.linkString, with: selectedLinkRangeResult)
-            }
-            
-        } else {
-            selectedLinkRangeResult = nil
+        if let preferedWidth = preferedWidth {
+            width = preferedWidth
         }
         
-        addLinkAttributesToLinkRangeResultWithTouches(touches, highlighted: true)
+        if let preferedHeight = preferedHeight {
+            height = preferedHeight
+        }
         
-        super.touchesBegan(touches, withEvent: event)
+        return CGSize(width: width, height: height)
     }
     
-    public override func touchesMoved(touches: Set<UITouch>, withEvent event: UIEvent?) {
-
-        if let linkRangeResult = getLinkRangeResultWithTouches(touches) {
-            
-            if linkRangeResult.linkRange.startIndex != selectedLinkRangeResult?.linkRange.startIndex  {
-                if let selectedLinkRangeResult = selectedLinkRangeResult, attributedText = attributedText {
-                    self.attributedText = addLinkAttributesToAttributedString(attributedText, withLinkRangeResults: [selectedLinkRangeResult], highlighted: false)
+    open override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        textContainer.size = CGSize(width: self.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+    }
+    
+    open override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let linkResult = linkResult(with: touches) {
+            selectedLinkResult = linkResult
+            didTouch(TouchResult(linkResult: linkResult, touches: touches, event: event, state: .began))
+        } else {
+            selectedLinkResult = nil
+        }
+        
+        addLinkAttributesToLinkResult(withTouches: touches, highlighted: true)
+        
+        super.touchesBegan(touches, with: event)
+    }
+    
+    open override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let linkResult = linkResult(with: touches) {
+            if linkResult.range.location != selectedLinkResult?.range.location  {
+                if let selectedLinkResult = selectedLinkResult, let attributedText = attributedText {
+                    self.attributedText = addLinkAttributesTo(attributedText, with: [selectedLinkResult], highlighted: false)
                 }
             }
             
-            addLinkAttributesToLinkRangeResultWithTouches(touches, highlighted: true)
+            selectedLinkResult = linkResult
             
-            selectedLinkRangeResult = linkRangeResult
+            addLinkAttributesToLinkResult(withTouches: touches, highlighted: true)
             
-            // Call delegate
-            if let selectedLinkRangeResult = selectedLinkRangeResult {
-                delegate?.contextLabel(self, movedTouchTo: selectedLinkRangeResult.linkString, with: selectedLinkRangeResult)
-            }
-            
+            didTouch(TouchResult(linkResult: linkResult, touches: touches, event: event, state: .changed))
         } else {
-            if let selectedLinkRangeResult = selectedLinkRangeResult, attributedText = attributedText {
-                self.attributedText = addLinkAttributesToAttributedString(attributedText, withLinkRangeResults: [selectedLinkRangeResult], highlighted: false)
+            if let selectedLinkResult = selectedLinkResult, let attributedText = attributedText {
+                self.attributedText = addLinkAttributesTo(attributedText, with: [selectedLinkResult], highlighted: false)
             }
-            
-            selectedLinkRangeResult = nil
+            selectedLinkResult = nil
         }
         
-        super.touchesMoved(touches, withEvent: event)
+        super.touchesMoved(touches, with: event)
     }
     
-    public override func touchesEnded(touches: Set<UITouch>, withEvent event: UIEvent?) {
-        addLinkAttributesToLinkRangeResultWithTouches(touches, highlighted: false)
-        
-        // Call delegate
-        if let selectedLinkRangeResult = selectedLinkRangeResult {
-            delegate?.contextLabel(self, endedTouchOf: selectedLinkRangeResult.linkString, with: selectedLinkRangeResult)
-            selectedLinkRangeResult.textLink?.action()
+    open override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        addLinkAttributesToLinkResult(withTouches: touches, highlighted: false)
+
+        if let selectedLinkResult = selectedLinkResult {
+            didTouch(TouchResult(linkResult: selectedLinkResult, touches: touches, event: event, state: .ended))
+            selectedLinkResult.textLink?.action()
         }
         
-        selectedLinkRangeResult = nil
+        selectedLinkResult = nil
         
-        super.touchesEnded(touches, withEvent: event)
+        super.touchesEnded(touches, with: event)
     }
 
-    public override func touchesCancelled(touches: Set<UITouch>?, withEvent event: UIEvent?) {
-        addLinkAttributesToLinkRangeResultWithTouches(touches, highlighted: false)
-        super.touchesCancelled(touches, withEvent: event)
+    open override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        addLinkAttributesToLinkResult(withTouches: touches, highlighted: false)
+        
+        super.touchesCancelled(touches, with: event)
     }
     
     // MARK: - Methods
     
-    func addAttributes(attributes: Dictionary<String, AnyObject>, range: NSRange) {
+    func addAttributes(_ attributes: Dictionary<String, AnyObject>, range: NSRange) {
         if let contextLabelData = contextLabelData {
             let mutableAttributedString = NSMutableAttributedString(attributedString: contextLabelData.attributedString)
             mutableAttributedString.addAttributes(attributes, range: range)
@@ -350,7 +371,7 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
         }
     }
     
-    public func setContextLabelDataWithText(text: String?) {
+    open func setContextLabelDataWithText(_ text: String?) {
         var text = text
         
         if text == nil {
@@ -362,27 +383,24 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
         }
     }
     
-    public func contextLabelDataWithText(text: String?) -> ContextLabelData? {
+    open func contextLabelDataWithText(_ text: String?) -> ContextLabelData? {
         if let text = text {
             let mutableAttributedString = NSMutableAttributedString(string: text, attributes: attributesFromProperties())
-            let linkRangeResults = getRangesForLinksInAttributedString(mutableAttributedString)
-            
-            // Addd attributes to link ranges
-            let attributedString = addLinkAttributesToAttributedString(mutableAttributedString, withLinkRangeResults: linkRangeResults)
-            
-            return ContextLabelData(attributedString: attributedString, linkRangeResults: linkRangeResults)
+            let _linkResults = linkResults(in: mutableAttributedString)
+            let attributedString = addLinkAttributesTo(mutableAttributedString, with: _linkResults)
+
+            return ContextLabelData(attributedString: attributedString, linkResults: _linkResults)
         }
-        
         return nil
     }
     
-    public func setText(text:String, withTextLinks textLinks: [TextLink]) {
+    open func setText(_ text:String, withTextLinks textLinks: [TextLink]) {
         self.textLinks = textLinks
         
         self.contextLabelData = contextLabelDataWithText(text)
     }
     
-    public func attributesFromProperties() -> [String : AnyObject] {
+    open func attributesFromProperties() -> [String : AnyObject] {
         
         // Shadow attributes
         let shadow = NSShadow()
@@ -390,15 +408,15 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
             shadow.shadowColor = self.shadowColor
             shadow.shadowOffset = self.shadowOffset
         } else {
-            shadow.shadowOffset = CGSizeMake(0, -1);
+            shadow.shadowOffset = CGSize(width: 0, height: -1);
             shadow.shadowColor = nil;
         }
         
         // Color attributes
         var color = self.textColor
-        if self.enabled == false {
-            color = UIColor.lightGrayColor()
-        } else if self.highlighted {
+        if self.isEnabled == false {
+            color = UIColor.lightGray
+        } else if self.isHighlighted {
             if self.highlightedTextColor != nil {
                 color = self.highlightedTextColor!
             }
@@ -413,223 +431,264 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
             mutableParagraphStyle.lineSpacing = lineSpacing
         }
         
-        // Attributes dictionary
-        let attributes = [NSFontAttributeName: self.font,
-            NSForegroundColorAttributeName: color,
-            NSShadowAttributeName: shadow,
-            NSParagraphStyleAttributeName: mutableParagraphStyle]
+        // LineHeightMultiple
+        if let lineHeightMultiple = lineHeightMultiple {
+            mutableParagraphStyle.lineHeightMultiple = lineHeightMultiple
+        }
         
-        return attributes
+        // Attributes dictionary
+        var attributes = [NSShadowAttributeName: shadow,
+            NSParagraphStyleAttributeName: mutableParagraphStyle] as [String : Any]
+        
+        if let font = self.font {
+            attributes[NSFontAttributeName] = font
+        }
+        
+        if let color = color {
+            attributes[NSForegroundColorAttributeName] = color
+        }
+        
+        return attributes as [String : AnyObject]
     }
     
-    private func attributesWithTextColor(textColor: UIColor) -> [String: AnyObject] {
+    fileprivate func attributesWithTextColor(_ textColor: UIColor) -> [String: AnyObject] {
         var attributes = attributesFromProperties()
         attributes[NSForegroundColorAttributeName] = textColor
         
         return attributes
     }
     
-    private func setupTextSystem() {
-        lineBreakMode = .ByTruncatingTail
+    fileprivate func attributesWithTextColor(_ textColor: UIColor, underlineStyle: NSUnderlineStyle) -> [String: AnyObject] {
+        var attributes = attributesWithTextColor(textColor)
+        attributes[NSUnderlineStyleAttributeName] = underlineStyle.rawValue as AnyObject?
+        
+        return attributes
+    }
+    
+    fileprivate func setup() {
+        lineBreakMode = .byTruncatingTail
         
         // Attach the layou manager to the container and storage
         self.textContainer.layoutManager = self.layoutManager
 
         // Make sure user interaction is enabled so we can accept touches
-        self.userInteractionEnabled = true
+        self.isUserInteractionEnabled = true
 
         // Establish the text store with our current text
         setContextLabelDataWithText(nil)
     }
     
-    // Returns array of ranges for all special words, user handles, hashtags and urls
-    private func getRangesForLinksInAttributedString(attributedString: NSAttributedString) -> [LinkRangeResult] {
-        var rangesForLinks = [LinkRangeResult]()
+    // Returns array of link results for all special words, user handles, hashtags and urls
+    fileprivate func linkResults(in attributedString: NSAttributedString) -> [LinkResult] {
+        var linkResults = [LinkResult]()
 
         if let textLinks = textLinks {
-            if textLinks.count > 0 {
-                rangesForLinks += getRangesForTextLinks(textLinks)
-            }
+            linkResults += linkResultsForTextLinks(textLinks)
         }
         
-        if linkDetectionTypes.intersect(.UserHandle) != [] {
-            rangesForLinks += getRangesForUserHandlesInText(attributedString.string)
+        if linkDetectionTypes.intersection(.UserHandle) != [] {
+            linkResults += linkResultsForUserHandles(inString: attributedString.string)
         }
 
-        if linkDetectionTypes.intersect(.Hashtag) != [] {
-            rangesForLinks += getRangesForHashtagsInText(attributedString.string)
+        if linkDetectionTypes.intersection(.Hashtag) != [] {
+            linkResults += linkResultsForHashtags(inString: attributedString.string)
         }
 
-        if linkDetectionTypes.intersect(.URL) != [] {
-            rangesForLinks += getRangesForURLsInAttributedString(attributedString)
+        if linkDetectionTypes.intersection(.URL) != [] {
+            linkResults += linkResultsForURLs(inAttributedString: attributedString)
         }
 
-        return rangesForLinks
+        return linkResults
     }
 
-    private func getRangesForTextLinks(textLinks: [TextLink]) -> [LinkRangeResult] {
-        var rangesForLinkType = [LinkRangeResult]()
+    // TEST: testLinkResultsForTextLinksWithoutEmojis()
+    // TEST: testLinkResultsForTextLinksWithEmojis()
+    // TEST: testLinkResultsForTextLinksWithMultipleOccuranciesWithoutRange()
+    // TEST: testLinkResultsForTextLinksWithMultipleOccuranciesWithRange()
+    internal func linkResultsForTextLinks(_ textLinks: [TextLink]) -> [LinkResult] {
+        var linkResults = [LinkResult]()
         
         for textLink in textLinks {
             let linkType = LinkDetectionType.TextLink
             let matchString = textLink.text
-            if let stringIndexRange = text.rangeOfString(textLink.text, options: .CaseInsensitiveSearch) {
-                rangesForLinkType.append(LinkRangeResult(linkDetectionType: linkType, linkRange: stringIndexRange, linkString: matchString, textLink: textLink))
+            
+            let range = textLink.range ?? NSMakeRange(0, text.characters.count)
+            var searchRange = range
+            var matchRange = NSRange()
+            if text.characters.count >= range.location + range.length {
+                while matchRange.location != NSNotFound  {
+                    matchRange = NSString(string: text).range(of: matchString, options: textLink.options, range: searchRange)
+                    
+                    if matchRange.location != NSNotFound && (matchRange.location + matchRange.length) <= (range.location + range.length) {
+                        linkResults.append(LinkResult(detectionType: linkType, range: matchRange, text: matchString, textLink: textLink))
+                        
+                        // Remaining searchRange
+                        let location = matchRange.location + matchRange.length
+                        let length = text.characters.count - location
+                        searchRange = NSMakeRange(location, length)
+                    } else {
+                        break
+                    }
+                }
             }
         }
         
-        return rangesForLinkType
+        return linkResults
     }
     
-    private func getRangesForUserHandlesInText(text: String) -> [LinkRangeResult] {
-        let rangesForUserHandles = getRangesForLinkType(LinkDetectionType.UserHandle, regexPattern: "(?<!\\w)@([\\w\\_]+)?", text: text)
-        return rangesForUserHandles
+    // TEST: testLinkResultsForUserHandlesWithoutEmojis()
+    // TEST: testLinkResultsForUserHandlesWithEmojis()
+    internal func linkResultsForUserHandles(inString string: String) -> [LinkResult] {
+        return linkResults(for: .UserHandle, regexPattern: userHandleRegex, string: string)
     }
 
-    private func getRangesForHashtagsInText(text: String) -> [LinkRangeResult] {
-        let rangesForHashtags = getRangesForLinkType(LinkDetectionType.Hashtag, regexPattern: "(?<!\\w)#([\\w\\_]+)?", text: text)
-        return rangesForHashtags
+    // TEST: testLinkResultsForHashtagsWithoutEmojis()
+    // TEST: testLinkResultsForHashtagsWithEmojis()
+    internal func linkResultsForHashtags(inString string: String) -> [LinkResult] {
+        return linkResults(for: .Hashtag, regexPattern: hashtagRegex, string: string)
     }
 
-    private func getRangesForLinkType(linkType: LinkDetectionType, regexPattern: String, text: String) -> [LinkRangeResult] {
-        var rangesForLinkType = [LinkRangeResult]()
+    fileprivate func linkResults(for linkType: LinkDetectionType, regexPattern: String, string: String) -> [LinkResult] {
+        var linkResults = [LinkResult]()
 
         // Setup a regular expression for user handles and hashtags
         let regex: NSRegularExpression?
         do {
-            regex = try NSRegularExpression(pattern: regexPattern, options: .CaseInsensitive)
+            regex = try NSRegularExpression(pattern: regexPattern, options: .caseInsensitive)
         } catch _ as NSError {
             regex = nil
         }
 
         // Run the expression and get matches
         let length: Int = text.characters.count
-        if let matches = regex?.matchesInString(text, options: .ReportCompletion, range: NSMakeRange(0, length)) {
+        if let matches = regex?.matches(in: text, options: .reportCompletion, range: NSMakeRange(0, length)) {
 
             // Add all our ranges to the result
             for match in matches {
                 let matchRange = match.range
-                let stringIndexRange = text.startIndex.advancedBy(matchRange.location)..<text.startIndex.advancedBy(matchRange.location + matchRange.length)
-                let matchString = text.substringWithRange(stringIndexRange)
+                let matchString = NSString(string: text).substring(with: matchRange)
                 
-                rangesForLinkType.append(LinkRangeResult(linkDetectionType: linkType, linkRange: stringIndexRange, linkString: matchString, textLink: nil))
+                if matchRange.length > 1 {
+                    linkResults.append(LinkResult(detectionType: linkType, range: matchRange, text: matchString, textLink: nil))
+                }
             }
         }
 
-        return rangesForLinkType
+        return linkResults
     }
 
-    private func getRangesForURLsInAttributedString(attributedString: NSAttributedString) -> [LinkRangeResult] {
-        var rangesForURLs = [LinkRangeResult]()
+    fileprivate func linkResultsForURLs(inAttributedString attributedString: NSAttributedString) -> [LinkResult] {
+        var linkResults = [LinkResult]()
 
         // Use a data detector to find urls in the text
         let plainText = attributedString.string
 
         let dataDetector: NSDataDetector?
         do {
-            dataDetector = try NSDataDetector(types: NSTextCheckingType.Link.rawValue)
+            dataDetector = try NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
         } catch _ as NSError {
             dataDetector = nil
         }
 
         if let dataDetector = dataDetector {
-            let matches = dataDetector.matchesInString(plainText, options: NSMatchingOptions.ReportCompletion, range: NSMakeRange(0, plainText.characters.count))
+            let matches = dataDetector.matches(in: plainText, options: NSRegularExpression.MatchingOptions.reportCompletion, range: NSMakeRange(0, plainText.characters.count))
             
             // Add a range entry for every url we found
             for match in matches {
                 let matchRange = match.range
-                let stringIndexRange = text.startIndex.advancedBy(matchRange.location)..<text.startIndex.advancedBy(matchRange.location + matchRange.length)
                 
                 // If there's a link embedded in the attributes, use that instead of the raw text
-                var realURL: AnyObject? = attributedString.attribute(NSLinkAttributeName, atIndex: matchRange.location, effectiveRange: nil)
+                var realURL = attributedString.attribute(NSLinkAttributeName, at: matchRange.location, effectiveRange: nil)
                 if realURL == nil {
-                    let range = text.startIndex.advancedBy(matchRange.location)..<text.startIndex.advancedBy(matchRange.location + matchRange.length)
-                    realURL = plainText.substringWithRange(range)
+                    if let range = plainText.rangeFromNSRange(matchRange) {
+                        realURL = plainText.substring(with: range)
+                    }
                 }
                 
-                if match.resultType == .Link {
+                if match.resultType == .link {
                     if let matchString = realURL as? String {
-                        rangesForURLs.append(LinkRangeResult(linkDetectionType: LinkDetectionType.URL, linkRange: stringIndexRange, linkString: matchString, textLink: nil))
+                        linkResults.append(LinkResult(detectionType: LinkDetectionType.URL, range: matchRange, text: matchString, textLink: nil))
                     }
                 }
             }
         }
 
-        return rangesForURLs
+        return linkResults
     }
     
-    private func addLinkAttributesToAttributedString(attributedString: NSAttributedString, withLinkRangeResults linkRangeResults: [LinkRangeResult], highlighted: Bool = false) -> NSAttributedString {
+    fileprivate func addLinkAttributesTo(_ attributedString: NSAttributedString, with linkResults: [LinkResult], highlighted: Bool = false) -> NSAttributedString {
         let mutableAttributedString = NSMutableAttributedString(attributedString: attributedString)
         
-        for linkRangeResult in linkRangeResults {
+        for linkResult in linkResults {
             var attributes: [String: AnyObject]?
             
-            if linkRangeResult.linkDetectionType == .TextLink {
-                let color = highlighted ? privateTextLinkHighlightedTextColor : textLinkTextColor
-                attributes = attributesWithTextColor(color)
+            if linkResult.detectionType == .TextLink {
+                let textColors = textLinkTextColor(linkResult)
+                let color = (highlighted) ? textColors.highlightedTextColor ?? highlightedTextColor(textColors.textColor) : textColors.textColor
+                
+                attributes = attributesWithTextColor(color, underlineStyle: textLinkUnderlineStyle(linkResult))
             }
             
-            if linkRangeResult.linkDetectionType == .UserHandle {
-                let color = highlighted ? privateUserHandleHighlightedTextColor : userHandleTextColor
-                attributes = attributesWithTextColor(color)
+            if linkResult.detectionType == .UserHandle {
+                let textColors = userHandleTextColor(linkResult)
+                let color = (highlighted) ? textColors.highlightedTextColor ?? highlightedTextColor(textColors.textColor) : textColors.textColor
+                
+                attributes = attributesWithTextColor(color, underlineStyle: userHandleUnderlineStyle(linkResult))
             }
             
-            if linkRangeResult.linkDetectionType == .Hashtag {
-                let color = highlighted ? privateHashtagHighlightedTextColor : hashtagTextColor
-                attributes = attributesWithTextColor(color)
+            if linkResult.detectionType == .Hashtag {
+                let textColors = hashtagTextColor(linkResult)
+                let color = (highlighted) ? textColors.highlightedTextColor ?? highlightedTextColor(textColors.textColor) : textColors.textColor
+                
+                attributes = attributesWithTextColor(color, underlineStyle: hashtagUnderlineStyle(linkResult))
             }
             
-            if linkRangeResult.linkDetectionType == .URL {
-                let color = highlighted ? privateLinkHighlightedTextColor : linkTextColor
-                attributes = attributesWithTextColor(color)
+            if linkResult.detectionType == .URL {
+                let textColors = textLinkTextColor(linkResult)
+                let color = (highlighted) ? textColors.highlightedTextColor ?? highlightedTextColor(textColors.textColor) : textColors.textColor
+                
+                attributes = attributesWithTextColor(color, underlineStyle: linkUnderlineStyle(linkResult))
             }
             
             if let attributes = attributes {
-                let location = text.startIndex.distanceTo(linkRangeResult.linkRange.startIndex)
-                let length = linkRangeResult.linkRange.startIndex.distanceTo(linkRangeResult.linkRange.endIndex)
-                let range = NSMakeRange(location, length)
-                
-                mutableAttributedString.setAttributes(attributes, range: range)
+                mutableAttributedString.setAttributes(attributes, range: linkResult.range)
             }
         }
         
         return mutableAttributedString
     }
     
-    private func addLinkAttributesToLinkRangeResultWithTouches(touches: NSSet!, highlighted: Bool) {
-        if let linkRangeResult = getLinkRangeResultWithTouches(touches), attributedText = attributedText {
-            self.attributedText = addLinkAttributesToAttributedString(attributedText, withLinkRangeResults: [linkRangeResult], highlighted: highlighted)
+    fileprivate func addLinkAttributesToLinkResult(withTouches touches: Set<UITouch>!, highlighted: Bool) {
+        if let linkResult = linkResult(with: touches), let attributedText = attributedText {
+            self.attributedText = addLinkAttributesTo(attributedText, with: [linkResult], highlighted: highlighted)
         }
     }
     
-    private func getLinkRangeResultWithTouches(touches: NSSet!) -> LinkRangeResult? {
-        let anyTouch: UITouch = touches.anyObject() as! UITouch
-        let touchLocation = anyTouch.locationInView(self)
-        if let touchedLink = getLinkRangeResultAtLocation(touchLocation) {
+    fileprivate func linkResult(with touches: Set<UITouch>!) -> LinkResult? {
+        if let touchLocation = touches.first?.location(in: self), let touchedLink = linkResult(at: touchLocation) {
             return touchedLink
         }
-        
         return nil
     }
     
-    private func getLinkRangeResultAtLocation(location: CGPoint) -> LinkRangeResult? {
+    fileprivate func linkResult(at location: CGPoint) -> LinkResult? {
         var fractionOfDistance: CGFloat = 0.0
-        let characterIndex = layoutManager.characterIndexForPoint(location, inTextContainer: textContainer, fractionOfDistanceBetweenInsertionPoints: &fractionOfDistance)
+        let characterIndex = layoutManager.characterIndex(for: location, in: textContainer, fractionOfDistanceBetweenInsertionPoints: &fractionOfDistance)
         
         if characterIndex <= textStorage?.length {
-            if let linkRangeResults = contextLabelData?.linkRangeResults {
-                for linkRangeResult in linkRangeResults {
-                    let rangeLocation = text.startIndex.distanceTo(linkRangeResult.linkRange.startIndex)
-                    let rangeLength = linkRangeResult.linkRange.startIndex.distanceTo(linkRangeResult.linkRange.endIndex)
+            if let linkResults = contextLabelData?.linkResults {
+                for linkResult in linkResults {
+                    let rangeLocation = linkResult.range.location
+                    let rangeLength = linkResult.range.length
                     
                     if rangeLocation <= characterIndex &&
                         (rangeLocation + rangeLength - 1) >= characterIndex {
                             
-                            let glyphRange = layoutManager.glyphRangeForCharacterRange(NSMakeRange(rangeLocation, rangeLength), actualCharacterRange: nil)
-                            let boundingRect = layoutManager.boundingRectForGlyphRange(glyphRange, inTextContainer: textContainer)
+                            let glyphRange = layoutManager.glyphRange(forCharacterRange: NSMakeRange(rangeLocation, rangeLength), actualCharacterRange: nil)
+                            let boundingRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
                             
-                            if CGRectContainsPoint(boundingRect, location) {
-                                return linkRangeResult
+                            if boundingRect.contains(location) {
+                                return linkResult
                             }
                     }
                 }
@@ -639,7 +698,29 @@ public class ContextLabel: UILabel, NSLayoutManagerDelegate {
         return nil
     }
     
-    private func highlightedTextColorForTextColor(textColor: UIColor) -> UIColor {
-        return textColor.colorWithAlphaComponent(0.5)
+    fileprivate func highlightedTextColor(_ textColor: UIColor) -> UIColor {
+        return textColor.withAlphaComponent(0.5)
+    }
+}
+
+extension String {
+    
+    func rangeFromNSRange(_ nsRange : NSRange) -> Range<String.Index>? {
+        if let from16 = utf16.index(utf16.startIndex, offsetBy: nsRange.location, limitedBy: utf16.endIndex) {
+            if let to16 = utf16.index(from16, offsetBy: nsRange.length, limitedBy: utf16.endIndex) {
+                if let from = String.Index(from16, within: self), let to = String.Index(to16, within: self) {
+                    return from ..< to
+                }
+            }
+        }
+        return nil
+    }
+    
+    func NSRangeFromRange(_ range : Range<String.Index>) -> NSRange {
+        let utf16view = self.utf16
+        let from = String.UTF16View.Index(range.lowerBound, within: utf16view)
+        let to = String.UTF16View.Index(range.upperBound, within: utf16view)
+        
+        return NSMakeRange(utf16view.distance(from: from, to: from), utf16view.distance(from: from, to: to))
     }
 }

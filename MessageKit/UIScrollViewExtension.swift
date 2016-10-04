@@ -15,17 +15,17 @@ public extension UIScrollView {
         scrollToTopAnimated(false)
     }
     
-    public func scrollToTopAnimated(animated: Bool) {
-        setContentOffset(CGPointZero, animated: animated)
+    public func scrollToTopAnimated(_ animated: Bool) {
+        setContentOffset(CGPoint.zero, animated: animated)
     }
     
     public func scrollToBottom() {
         scrollToBottomAnimated(false)
     }
     
-    public func scrollToBottomAnimated(animated: Bool) {
+    public func scrollToBottomAnimated(_ animated: Bool) {
         if self.contentSize.height > self.bounds.height {
-            let bottomOffset = CGPointMake(0.0, self.contentSize.height + self.contentInset.top + self.contentInset.bottom - self.bounds.size.height)
+            let bottomOffset = CGPoint(x: 0.0, y: self.contentSize.height + self.contentInset.top + self.contentInset.bottom - self.bounds.size.height)
             self.setContentOffset(bottomOffset, animated: animated)
         }
     }
@@ -37,14 +37,14 @@ public extension UITableView {
         scrollToBottomAnimated(false)
     }
     
-    public override func scrollToBottomAnimated(animated: Bool) {
+    public override func scrollToBottomAnimated(_ animated: Bool) {
         if self.contentSize.height > self.bounds.height {
             let section = numberOfSections - 1
-            let rows = numberOfRowsInSection(section)
+            let rows = numberOfRows(inSection: section)
             let row = rows - 1
             if row > 0 {
-                let indexPath = NSIndexPath(forRow: row, inSection: section)
-                scrollToRowAtIndexPath(indexPath, atScrollPosition: .Bottom, animated: animated)
+                let indexPath = IndexPath(row: row, section: section)
+                scrollToRow(at: indexPath, at: .bottom, animated: animated)
             }
         }
     }

@@ -10,113 +10,139 @@ import Foundation
 import UIKit
 import ContextLabel
 import PureLayout
-
-public protocol MessageKitTableViewCellDelegate {
-    func messageTableViewCell(sender: MessageKitTableViewCell, didSelectContextLabelText text: String)
+fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l < r
+  case (nil, _?):
+    return true
+  default:
+    return false
+  }
 }
 
-public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
+fileprivate func > <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
+  switch (lhs, rhs) {
+  case let (l?, r?):
+    return l > r
+  default:
+    return rhs < lhs
+  }
+}
+
+
+public protocol MessageKitTableViewCellDelegate {
+    func messageTableViewCell(_ sender: MessageKitTableViewCell, didSelectContextLabelText text: String)
+}
+
+open class MessageKitTableViewCell: UITableViewCell {
     
-    private var contextLabelTouched = false
+    fileprivate var contextLabelTouched = false
     
-    public var delegate: MessageKitTableViewCellDelegate?
+    open var delegate: MessageKitTableViewCellDelegate?
     
-    public var leftImageViewSize = CGSizeMake(33, 33)
-    public var leftImageViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
+    open var leftImageViewSize = CGSize(width: 33, height: 33)
+    open var leftImageViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     
-    public var headerContentInsets = UIEdgeInsetsZero
+    open var headerContentInsets = UIEdgeInsets.zero
     
-    public var contentBackgroundViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
+    open var contentBackgroundViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     
-    public var topLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11) {
+    open var topLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11) {
         didSet {
             topLabel.contentInsets = topLabelInsets
         }
     }
     
-    public var contentLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
+    open var contentLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     
-    public var bottomLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11) {
+    open var bottomLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11) {
         didSet {
             bottomLabel.contentInsets = bottomLabelInsets
         }
     }
     
-    public var footerContentInsets = UIEdgeInsetsZero
+    open var footerContentInsets = UIEdgeInsets.zero
 
-    public var rightImageViewSize = CGSizeMake(33, 33)
-    public var rightImageViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
+    open var rightImageViewSize = CGSize(width: 33, height: 33)
+    open var rightImageViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     
-    public var contentBackgroundViewLeftRelation: NSLayoutRelation = .Equal
-    public var contentBackgroundViewRightRelation: NSLayoutRelation = .Equal
+    open var contentBackgroundViewLeftRelation: NSLayoutRelation = .equal
+    open var contentBackgroundViewRightRelation: NSLayoutRelation = .equal
     
-    public lazy var headerContentView: UIView = {
+    open lazy var headerContentView: UIView = {
         let _view = UIView(forAutoLayout: ())
         
         return _view
     }()
 
-    public lazy var leftContentView: UIView = {
+    open lazy var leftContentView: UIView = {
         let _view = UIView(forAutoLayout: ())
         
         return _view
     }()
 
-    public lazy var leftImageView: UIImageView = {
+    open lazy var leftImageView: UIImageView = {
         let _imageView = UIImageView(forAutoLayout: ())
-        _imageView.backgroundColor = UIColor.clearColor()
+        _imageView.backgroundColor = UIColor.clear
         _imageView.clipsToBounds = true
         
         return _imageView
     }()
 
-    public lazy var contentBackgroundView: UIView = {
+    open lazy var contentBackgroundView: UIView = {
         let _view = UIView(forAutoLayout: ())
-        _view.backgroundColor = UIColor.clearColor()
+        _view.backgroundColor = UIColor.clear
         _view.layer.cornerRadius = 16.0
         
         return _view
         }()
     
-    public lazy var topLabel: MessageLabel = {
+    open lazy var topLabel: MessageLabel = {
         let _label = MessageLabel(forAutoLayout: ())
         _label.numberOfLines = 0
         
         return _label
         }()
     
-    public lazy var contentLabel: ContextLabel = {
-        let _label = ContextLabel(forAutoLayout: ())
+    open lazy var contentLabel: ContextLabel = {
+        let _label = ContextLabel(frame: CGRect.zero, didTouch: { (touchResult) in
+            if touchResult.state == .began {
+                self.contextLabelTouched = true
+            } else if touchResult.state == .ended {
+                self.contextLabelTouched = false
+            }
+        })
+        _label.translatesAutoresizingMaskIntoConstraints = false
         _label.numberOfLines = 0
-        _label.backgroundColor = UIColor.clearColor()
+        _label.backgroundColor = .clear
         _label.clipsToBounds = false
-        _label.delegate = self
         
         return _label
         }()
     
-    public lazy var bottomLabel: MessageLabel = {
+    open lazy var bottomLabel: MessageLabel = {
         let _label = MessageLabel(forAutoLayout: ())
         _label.numberOfLines = 0
         
         return _label
     }()
     
-    public lazy var rightImageView: UIImageView = {
+    open lazy var rightImageView: UIImageView = {
         let _imageView = UIImageView(forAutoLayout: ())
-        _imageView.backgroundColor = UIColor.clearColor()
+        _imageView.backgroundColor = UIColor.clear
         _imageView.clipsToBounds = true
         
         return _imageView
     }()
     
-    public lazy var rightContentView: UIView = {
+    open lazy var rightContentView: UIView = {
         let _view = UIView(forAutoLayout: ())
         
         return _view
     }()
     
-    public lazy var footerContentView: UIView = {
+    open lazy var footerContentView: UIView = {
         let _view = UIView(forAutoLayout: ())
         
         return _view
@@ -127,7 +153,7 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
     override public init(style: UITableViewCellStyle, reuseIdentifier: String!) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
-        selectionStyle = .None
+        selectionStyle = .none
         
         contentView.addSubview(headerContentView)
         contentView.addSubview(topLabel)
@@ -153,9 +179,9 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
     
     // MARK: Override UITableViewCell Functions
     
-    override public func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
+    override open func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if contextLabelTouched == false {
-            super.touchesBegan(touches, withEvent: event)
+            super.touchesBegan(touches, with: event)
         }
     }
     
@@ -163,90 +189,90 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
     
     // MARK: Setup
     
-    public func setupUI() {
+    open func setupUI() {
         
     }
     
     func setupConstraints() {
         
         // headerContentView
-        headerContentView.autoPinEdgesToSuperviewEdgesWithInsets(headerContentInsets, excludingEdge: .Bottom)
-        headerContentView.setContentHuggingPriority(999, forAxis: .Vertical)
+        headerContentView.autoPinEdgesToSuperviewEdges(with: headerContentInsets, excludingEdge: .bottom)
+        headerContentView.setContentHuggingPriority(999, for: .vertical)
         
         // topLabel
-        topLabel.autoPinEdge(.Top, toEdge: .Bottom, ofView: headerContentView)
-        topLabel.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: topLabelInsets.left)
-        topLabel.autoPinEdge(.Right, toEdge: .Right, ofView: contentView, withOffset: -topLabelInsets.right)
+        topLabel.autoPinEdge(.top, to: .bottom, of: headerContentView)
+        topLabel.autoPinEdge(.left, to: .left, of: contentView, withOffset: topLabelInsets.left)
+        topLabel.autoPinEdge(.right, to: .right, of: contentView, withOffset: -topLabelInsets.right)
         
         // leftContentView
-        leftContentView.autoPinEdge(.Top, toEdge: .Top, ofView: contentBackgroundView)
-        leftContentView.autoPinEdge(.Left, toEdge: .Left, ofView: contentView)
-        leftContentView.autoPinEdge(.Bottom, toEdge: .Bottom, ofView: contentBackgroundView)
-        leftContentView.autoPinEdge(.Right, toEdge: .Left, ofView: contentBackgroundView)
+        leftContentView.autoPinEdge(.top, to: .top, of: contentBackgroundView)
+        leftContentView.autoPinEdge(.left, to: .left, of: contentView)
+        leftContentView.autoPinEdge(.bottom, to: .bottom, of: contentBackgroundView)
+        leftContentView.autoPinEdge(.right, to: .left, of: contentBackgroundView)
         
         // leftImageView
-        leftImageView.autoPinEdge(.Top, toEdge: .Top, ofView: contentView, withOffset: leftImageViewInsets.top)
-        leftImageView.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: leftImageViewInsets.left)
-        leftImageView.autoSetDimensionsToSize(leftImageViewSize)
+        leftImageView.autoPinEdge(.top, to: .top, of: contentView, withOffset: leftImageViewInsets.top)
+        leftImageView.autoPinEdge(.left, to: .left, of: contentView, withOffset: leftImageViewInsets.left)
+        leftImageView.autoSetDimensions(to: leftImageViewSize)
         
         // contentBackgroundView
-        contentBackgroundView.autoPinEdge(.Top, toEdge: .Bottom, ofView: topLabel, withOffset: contentBackgroundViewInsets.top)
-        contentBackgroundView.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: contentBackgroundViewInsets.left, relation: contentBackgroundViewLeftRelation)
-        contentBackgroundView.autoPinEdge(.Right, toEdge: .Right, ofView: contentView, withOffset: -contentBackgroundViewInsets.right, relation: contentBackgroundViewRightRelation)
+        contentBackgroundView.autoPinEdge(.top, to: .bottom, of: topLabel, withOffset: contentBackgroundViewInsets.top)
+        contentBackgroundView.autoPinEdge(.left, to: .left, of: contentView, withOffset: contentBackgroundViewInsets.left, relation: contentBackgroundViewLeftRelation)
+        contentBackgroundView.autoPinEdge(.right, to: .right, of: contentView, withOffset: -contentBackgroundViewInsets.right, relation: contentBackgroundViewRightRelation)
 
         // contentLabel
-        contentLabel.autoPinEdgesToSuperviewEdgesWithInsets(contentLabelInsets)
-        contentLabel.setContentCompressionResistancePriority(999, forAxis: .Vertical)
-        contentLabel.setContentCompressionResistancePriority(200, forAxis: .Horizontal)
-        contentLabel.setContentHuggingPriority(999, forAxis: .Horizontal)
+        contentLabel.autoPinEdgesToSuperviewEdges(with: contentLabelInsets)
+        contentLabel.setContentCompressionResistancePriority(999, for: .vertical)
+        contentLabel.setContentCompressionResistancePriority(200, for: .horizontal)
+        contentLabel.setContentHuggingPriority(999, for: .horizontal)
         
         // rightImageView
-        rightImageView.autoPinEdge(.Top, toEdge: .Top, ofView: contentView, withOffset: rightImageViewInsets.top)
-        rightImageView.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: -rightImageViewInsets.right)
-        rightImageView.autoSetDimensionsToSize(rightImageViewSize)
+        rightImageView.autoPinEdge(.top, to: .top, of: contentView, withOffset: rightImageViewInsets.top)
+        rightImageView.autoPinEdge(.left, to: .left, of: contentView, withOffset: -rightImageViewInsets.right)
+        rightImageView.autoSetDimensions(to: rightImageViewSize)
         
         // rightContentView
-        rightContentView.autoPinEdge(.Top, toEdge: .Top, ofView: contentBackgroundView)
-        rightContentView.autoPinEdge(.Left, toEdge: .Right, ofView: contentBackgroundView)
-        rightContentView.autoPinEdge(.Bottom, toEdge: .Bottom, ofView: contentBackgroundView)
-        rightContentView.autoPinEdge(.Right, toEdge: .Right, ofView: contentView)
+        rightContentView.autoPinEdge(.top, to: .top, of: contentBackgroundView)
+        rightContentView.autoPinEdge(.left, to: .right, of: contentBackgroundView)
+        rightContentView.autoPinEdge(.bottom, to: .bottom, of: contentBackgroundView)
+        rightContentView.autoPinEdge(.right, to: .right, of: contentView)
         
         // bottomLabel
-        bottomLabel.autoPinEdge(.Top, toEdge: .Bottom, ofView: contentBackgroundView, withOffset: contentBackgroundViewInsets.bottom)
-        bottomLabel.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: bottomLabelInsets.left)
-        bottomLabel.autoPinEdge(.Right, toEdge: .Right, ofView: contentView, withOffset: -bottomLabelInsets.right)
+        bottomLabel.autoPinEdge(.top, to: .bottom, of: contentBackgroundView, withOffset: contentBackgroundViewInsets.bottom)
+        bottomLabel.autoPinEdge(.left, to: .left, of: contentView, withOffset: bottomLabelInsets.left)
+        bottomLabel.autoPinEdge(.right, to: .right, of: contentView, withOffset: -bottomLabelInsets.right)
         
         // footerContentView
-        footerContentView.autoPinEdge(.Top, toEdge: .Bottom, ofView: bottomLabel)
-        footerContentView.autoPinEdgesToSuperviewEdgesWithInsets(footerContentInsets, excludingEdge: .Top)
-        footerContentView.setContentHuggingPriority(999, forAxis: .Vertical)
+        footerContentView.autoPinEdge(.top, to: .bottom, of: bottomLabel)
+        footerContentView.autoPinEdgesToSuperviewEdges(with: footerContentInsets, excludingEdge: .top)
+        footerContentView.setContentHuggingPriority(999, for: .vertical)
     }
     
     // MARK: - Protocols
     
-    // MARK: ContextLabelDelegate
-    
-    public func contextLabel(contextLabel: ContextLabel, beganTouchOf text: String, with linkRangeResult: LinkRangeResult) {
-        contextLabelTouched = true
-    }
-    
-    public func contextLabel(contextLabel: ContextLabel, movedTouchTo text: String, with linkRangeResult: LinkRangeResult) {
-    }
-    
-    public func contextLabel(contextLabel: ContextLabel, endedTouchOf text: String, with linkRangeResult: LinkRangeResult) {
-        contextLabelTouched = false
-        
-        delegate?.messageTableViewCell(self, didSelectContextLabelText: text)
-    }
+//    // MARK: ContextLabelDelegate
+//    
+//    open func contextLabel(_ contextLabel: ContextLabel, beganTouchOf text: String, with linkRangeResult: LinkRangeResult) {
+//        contextLabelTouched = true
+//    }
+//    
+//    open func contextLabel(_ contextLabel: ContextLabel, movedTouchTo text: String, with linkRangeResult: LinkRangeResult) {
+//    }
+//    
+//    open func contextLabel(_ contextLabel: ContextLabel, endedTouchOf text: String, with linkRangeResult: LinkRangeResult) {
+//        contextLabelTouched = false
+//        
+//        delegate?.messageTableViewCell(self, didSelectContextLabelText: text)
+//    }
 }
 
-public class MessageLabel: UILabel {
+open class MessageLabel: UILabel {
     
-    public var contentInsets: UIEdgeInsets = UIEdgeInsetsZero
+    open var contentInsets: UIEdgeInsets = UIEdgeInsets.zero
     
-    public override func intrinsicContentSize() -> CGSize {
-        let width = super.intrinsicContentSize().width
-        let height = (text?.characters.count > 0) ? contentInsets.top + super.intrinsicContentSize().height + contentInsets.bottom : 0
+    open override var intrinsicContentSize : CGSize {
+        let width = super.intrinsicContentSize.width
+        let height = (text?.characters.count > 0) ? contentInsets.top + super.intrinsicContentSize.height + contentInsets.bottom : 0
         
         return CGSize(width: width, height: height)
     }

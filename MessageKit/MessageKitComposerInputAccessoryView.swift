@@ -11,7 +11,7 @@ import UIKit
 
 public let KeyboardFrameDidChangeNotification = "com.aplo.KeyboardFrameDidChangeNotification"
 
-public class MessageKitComposerInputAccessoryView: UIView {
+open class MessageKitComposerInputAccessoryView: UIView {
     
     weak var observedSuperview: UIView?
     
@@ -23,30 +23,30 @@ public class MessageKitComposerInputAccessoryView: UIView {
     
     // MARK: - Super
     
-    override public func willMoveToSuperview(newSuperview: UIView?) {
+    override open func willMove(toSuperview newSuperview: UIView?) {
         removeSuperviewObserver()
         addSuperviewObserver(newSuperview)
-        super.willMoveToSuperview(newSuperview)
+        super.willMove(toSuperview: newSuperview)
     }
     
     // MARK: KVO Listener
     
-    override public func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
+    override open func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         
-        if let keyPath = keyPath, object = object as? UIView, observedSuperview = observedSuperview {
+        if let keyPath = keyPath, let object = object as? UIView, let observedSuperview = observedSuperview {
             if object == observedSuperview && keyPath == "center" {
                 didChangeKeyboardFrame(observedSuperview.frame)
             } else {
-                super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
+                super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
             }
         } else {
-            super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
+            super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
         }
     }
     
     // MARK: - Methods
     
-    func addSuperviewObserver(superview: UIView?) {
+    func addSuperviewObserver(_ superview: UIView?) {
         if observedSuperview != nil {
             return
         }
@@ -66,8 +66,8 @@ public class MessageKitComposerInputAccessoryView: UIView {
         observedSuperview = nil
     }
     
-    func didChangeKeyboardFrame(frame: CGRect) {
-        let userInfo: [NSObject: AnyObject] = [UIKeyboardFrameEndUserInfoKey: NSValue(CGRect: frame)]
-        NSNotificationCenter.defaultCenter().postNotificationName(KeyboardFrameDidChangeNotification, object: nil, userInfo: userInfo)
+    func didChangeKeyboardFrame(_ frame: CGRect) {
+        let userInfo: [AnyHashable: Any] = [UIKeyboardFrameEndUserInfoKey: NSValue(cgRect: frame)]
+        NotificationCenter.default.post(name: Notification.Name(rawValue: KeyboardFrameDidChangeNotification), object: nil, userInfo: userInfo)
     }
 }

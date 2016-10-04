@@ -9,25 +9,25 @@
 import Foundation
 import UIKit
 
-public class MessageKitLeftTableViewCell: MessageKitTableViewCell {
+open class MessageKitLeftTableViewCell: MessageKitTableViewCell {
     
     // MARK: - Methods
     
     // MARK: Setup
     
-    override public func setupUI() {
+    override open func setupUI() {
         
-        rightImageView.hidden = true
-        rightImageViewSize = CGSizeZero
-        rightImageViewInsets = UIEdgeInsetsZero
+        rightImageView.isHidden = true
+        rightImageViewSize = CGSize.zero
+        rightImageViewInsets = UIEdgeInsets.zero
         
         contentBackgroundViewInsets = UIEdgeInsetsMake(11, 55, 11, 55)
-        contentBackgroundViewRightRelation = .GreaterThanOrEqual
+        contentBackgroundViewRightRelation = .greaterThanOrEqual
         
         topLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
         contentLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
         bottomLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
-        rightImageViewSize = CGSizeMake(33, 33)
+        rightImageViewSize = CGSize(width: 33, height: 33)
         rightImageViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     }
     

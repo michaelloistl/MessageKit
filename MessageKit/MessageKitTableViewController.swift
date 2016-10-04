@@ -20,7 +20,7 @@ public protocol MessageKitTableViewControllerProtocol {
     
     // MARK: Required
     
-    func shouldScrollToBottomOfSection(section: Int) -> Bool
+    func shouldScrollToBottomOfSection(_ section: Int) -> Bool
     
     // MARK: Optional (Already implemented via Protocol Extension)
     
@@ -36,20 +36,20 @@ public extension MessageKitTableViewControllerProtocol {
     }
 }
 
-public class MessageKitTableViewController: UITableViewController, MessageKitTableViewControllerProtocol, MessageKitComposerViewDataSource, MessageKitComposerViewDelegate {
+open class MessageKitTableViewController: UITableViewController, MessageKitTableViewControllerProtocol, MessageKitComposerViewDataSource, MessageKitComposerViewDelegate {
     
-    public lazy var composerView: MessageKitComposerView = {
+    open lazy var composerView: MessageKitComposerView = {
         let _view = MessageKitComposerView(dataSource: self, delegate: self)
         _view.inputBackgroundViewInsets = UIEdgeInsetsMake(8, 53.5, 8, 53.5)
-        _view.inputBackgroundView.backgroundColor = UIColor.clearColor()
+        _view.inputBackgroundView.backgroundColor = UIColor.clear
         
-        _view.textViewInsets = UIEdgeInsetsZero
+        _view.textViewInsets = UIEdgeInsets.zero
     
 //        _view.leftButton.setTitle(nil, forState: .Normal)
 //        _view.leftButton.setImage(UIImage(named: "ic_nav_add"), forState: .Normal)
         
-        _view.rightButton.setTitleColor(UIColor.blackColor(), forState: .Normal)
-        _view.rightButton.setTitleColor(UIColor.lightGrayColor(), forState: .Disabled)
+        _view.rightButton.setTitleColor(UIColor.black, for: UIControlState())
+        _view.rightButton.setTitleColor(UIColor.lightGray, for: .disabled)
         
         _view.placeholder = "Write a message..."
         
@@ -60,41 +60,41 @@ public class MessageKitTableViewController: UITableViewController, MessageKitTab
     
     // MARK: MessageKitTableViewControllerProtocol
     
-    public func shouldScrollToBottomOfSection(section: Int) -> Bool {
+    open func shouldScrollToBottomOfSection(_ section: Int) -> Bool {
         return true
     }
     
     // MARK: MessageKitComposerViewDataSource
-    public func viewControllerForMessageKitComposerView(sender: MessageKitComposerView) -> UIViewController? {
+    open func viewControllerForMessageKitComposerView(_ sender: MessageKitComposerView) -> UIViewController? {
         return self
     }
     
     // MARK:  MessageKitComposerViewDelegate
-    public func messageKitComposerView(sender: MessageKitComposerView, touchedUpInsideLeftButton button: UIButton) {
+    open func messageKitComposerView(_ sender: MessageKitComposerView, touchedUpInsideLeftButton button: UIButton) {
         
     }
     
-    public func messageKitComposerView(sender: MessageKitComposerView, touchedUpInsideRightButton button: UIButton) {
+    open func messageKitComposerView(_ sender: MessageKitComposerView, touchedUpInsideRightButton button: UIButton) {
         
     }
     
-    public func messageKitComposerView(sender: MessageKitComposerView, didChangeComposerHeightFrom from: CGFloat, to: CGFloat) {
+    open func messageKitComposerView(_ sender: MessageKitComposerView, didChangeComposerHeightFrom from: CGFloat, to: CGFloat) {
         
     }
     
-    public func messageKitComposerView(sender: MessageKitComposerView, didChangeKeyboardRect rect: CGRect) {
+    open func messageKitComposerView(_ sender: MessageKitComposerView, didChangeKeyboardRect rect: CGRect) {
         
     }
     
-    public func messageKitComposerView(sender: MessageKitComposerView, textViewDidBeginEditing textView: UITextView) {
+    open func messageKitComposerView(_ sender: MessageKitComposerView, textViewDidBeginEditing textView: UITextView) {
         
     }
     
-    public func messageKitComposerView(sender: MessageKitComposerView, textViewDidEndEditing textView: UITextView) {
+    open func messageKitComposerView(_ sender: MessageKitComposerView, textViewDidEndEditing textView: UITextView) {
         
     }
     
-    public func messageKitComposerView(sender: MessageKitComposerView, textViewDidChange textView: UITextView) {
+    open func messageKitComposerView(_ sender: MessageKitComposerView, textViewDidChange textView: UITextView) {
         
     }
 }
