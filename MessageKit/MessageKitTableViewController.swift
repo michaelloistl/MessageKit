@@ -25,7 +25,6 @@ public protocol MessageKitTableViewControllerProtocol {
     // MARK: Optional (Already implemented via Protocol Extension)
     
     func setTableViewContentInset()
-    func scrollToBottomOfSection(section: Int, animated: Bool)
 }
 
 public extension MessageKitTableViewControllerProtocol {
@@ -34,16 +33,6 @@ public extension MessageKitTableViewControllerProtocol {
     
     func setTableViewContentInset() {
         tableView.contentInset.bottom = composerView.bounds.height + composerView.keyBoardRect.height + 11
-    }
-    
-    func scrollToBottomOfSection(section: Int, animated: Bool) {
-        dispatch_async(dispatch_get_main_queue()) {
-            if self.tableView.numberOfRowsInSection(section) > 0 {
-                let row = self.tableView.numberOfRowsInSection(section) - 1
-                let indexPath = NSIndexPath(forRow: row, inSection: section)
-                self.tableView.scrollToRowAtIndexPath(indexPath, atScrollPosition: .Top, animated: animated)
-            }
-        }
     }
 }
 
@@ -89,7 +78,7 @@ public class MessageKitTableViewController: UITableViewController, MessageKitTab
         
     }
     
-    public func messageKitComposerView(sender: MessageKitComposerView, didChangeComposerHeight height: CGFloat) {
+    public func messageKitComposerView(sender: MessageKitComposerView, didChangeComposerHeightFrom from: CGFloat, to: CGFloat) {
         
     }
     
@@ -109,29 +98,3 @@ public class MessageKitTableViewController: UITableViewController, MessageKitTab
         
     }
 }
-
-
-
-
-//// MARK: ScrollViewDelegate
-//
-//func scrollViewDidScroll(scrollView: UIScrollView) {
-//    if scrollView.contentOffset.y > scrollToBottomContentOffsetY - 44.0 {
-//        shouldScroll = true
-//    }
-//}
-//
-//func scrollViewWillBeginDragging(scrollView: UIScrollView) {
-//    draggingTableView = true
-//    shouldScroll = false
-//}
-//
-//func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-//    if decelerate == false {
-//        draggingTableView = false
-//    }
-//}
-//
-//func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
-//    draggingTableView = false
-//}

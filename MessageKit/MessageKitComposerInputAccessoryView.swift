@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 
-let KeyboardFrameDidChangeNotification = "com.aplo.KeyboardFrameDidChangeNotification"
+public let KeyboardFrameDidChangeNotification = "com.aplo.KeyboardFrameDidChangeNotification"
 
 public class MessageKitComposerInputAccessoryView: UIView {
     

@@ -18,7 +18,7 @@
 		6A110DA71BF496FC0008225A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6A110DA11BF496FC0008225A /* Main.storyboard */; };
 		6A110DA81BF496FC0008225A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A110DA31BF496FC0008225A /* ViewController.swift */; };
 		6A110DAA1BF4976E0008225A /* MessageKitComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A110DA91BF4976E0008225A /* MessageKitComposerView.swift */; };
-		6A57BDB71C15CA3800EDD563 /* UITableViewExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A57BDB61C15CA3800EDD563 /* UITableViewExtension.swift */; };
+		6A57BDB71C15CA3800EDD563 /* UIScrollViewExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A57BDB61C15CA3800EDD563 /* UIScrollViewExtension.swift */; };
 		6A7500CC1C663F33009838FE /* MessageKitTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7500CB1C663F33009838FE /* MessageKitTableViewController.swift */; };
 		6AAFC46F1C16F56600667068 /* MessageKitComposerInputAccessoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAFC46E1C16F56600667068 /* MessageKitComposerInputAccessoryView.swift */; };
 		D347BD8AFBEEFD328410C886 /* Pods_MessageKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DA0D6EC799DD79602777A964 /* Pods_MessageKit.framework */; };
@@ -60,7 +60,7 @@
 		6A110DA21BF496FC0008225A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		6A110DA31BF496FC0008225A /* ViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		6A110DA91BF4976E0008225A /* MessageKitComposerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageKitComposerView.swift; sourceTree = "<group>"; };
-		6A57BDB61C15CA3800EDD563 /* UITableViewExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UITableViewExtension.swift; sourceTree = "<group>"; };
+		6A57BDB61C15CA3800EDD563 /* UIScrollViewExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIScrollViewExtension.swift; sourceTree = "<group>"; };
 		6A7500CB1C663F33009838FE /* MessageKitTableViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageKitTableViewController.swift; sourceTree = "<group>"; };
 		6AAFC46E1C16F56600667068 /* MessageKitComposerInputAccessoryView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageKitComposerInputAccessoryView.swift; sourceTree = "<group>"; };
 		B105B2CE89828D39B5C3DAB4 /* Pods-MessageKit.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MessageKit.release.xcconfig"; path = "Pods/Target Support Files/Pods-MessageKit/Pods-MessageKit.release.xcconfig"; sourceTree = "<group>"; };
@@ -182,7 +182,7 @@
 				6A0B29FD1C173BDA00F647C4 /* MessageKitTableViewCell.swift */,
 				6A0B29FC1C173BDA00F647C4 /* MessageKitRightTableViewCell.swift */,
 				6A0B29FE1C173BDA00F647C4 /* MessageKitLeftTableViewCell.swift */,
-				6A57BDB61C15CA3800EDD563 /* UITableViewExtension.swift */,
+				6A57BDB61C15CA3800EDD563 /* UIScrollViewExtension.swift */,
 			);
 			name = UITableView;
 			sourceTree = "<group>";
@@ -384,7 +384,7 @@
 				6A110DA41BF496FC0008225A /* AppDelegate.swift in Sources */,
 				6A0B29FF1C173BDA00F647C4 /* MessageKitRightTableViewCell.swift in Sources */,
 				6A110DAA1BF4976E0008225A /* MessageKitComposerView.swift in Sources */,
-				6A57BDB71C15CA3800EDD563 /* UITableViewExtension.swift in Sources */,
+				6A57BDB71C15CA3800EDD563 /* UIScrollViewExtension.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -24,13 +24,25 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
     public var leftImageViewSize = CGSizeMake(33, 33)
     public var leftImageViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     
+    public var headerContentInsets = UIEdgeInsetsZero
+    
     public var contentBackgroundViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     
-    public var topLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
+    public var topLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11) {
+        didSet {
+            topLabel.contentInsets = topLabelInsets
+        }
+    }
     
     public var contentLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
     
-    public var bottomLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11)
+    public var bottomLabelInsets = UIEdgeInsetsMake(11, 11, 11, 11) {
+        didSet {
+            bottomLabel.contentInsets = bottomLabelInsets
+        }
+    }
+    
+    public var footerContentInsets = UIEdgeInsetsZero
 
     public var rightImageViewSize = CGSizeMake(33, 33)
     public var rightImageViewInsets = UIEdgeInsetsMake(11, 11, 11, 11)
@@ -66,8 +78,8 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
         return _view
         }()
     
-    public lazy var topLabel: UILabel = {
-        let _label = UILabel(forAutoLayout: ())
+    public lazy var topLabel: MessageLabel = {
+        let _label = MessageLabel(forAutoLayout: ())
         _label.numberOfLines = 0
         
         return _label
@@ -83,8 +95,8 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
         return _label
         }()
     
-    public lazy var bottomLabel: UILabel = {
-        let _label = UILabel(forAutoLayout: ())
+    public lazy var bottomLabel: MessageLabel = {
+        let _label = MessageLabel(forAutoLayout: ())
         _label.numberOfLines = 0
         
         return _label
@@ -130,6 +142,9 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
         
         setupUI()
         setupConstraints()
+        
+        topLabel.contentInsets = topLabelInsets
+        bottomLabel.contentInsets = bottomLabelInsets
     }
 
     public required init?(coder aDecoder: NSCoder) {
@@ -155,11 +170,11 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
     func setupConstraints() {
         
         // headerContentView
-        headerContentView.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: .Bottom)
+        headerContentView.autoPinEdgesToSuperviewEdgesWithInsets(headerContentInsets, excludingEdge: .Bottom)
         headerContentView.setContentHuggingPriority(999, forAxis: .Vertical)
         
         // topLabel
-        topLabel.autoPinEdge(.Top, toEdge: .Bottom, ofView: headerContentView, withOffset: topLabelInsets.top)
+        topLabel.autoPinEdge(.Top, toEdge: .Bottom, ofView: headerContentView)
         topLabel.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: topLabelInsets.left)
         topLabel.autoPinEdge(.Right, toEdge: .Right, ofView: contentView, withOffset: -topLabelInsets.right)
         
@@ -175,7 +190,7 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
         leftImageView.autoSetDimensionsToSize(leftImageViewSize)
         
         // contentBackgroundView
-        contentBackgroundView.autoPinEdge(.Top, toEdge: .Bottom, ofView: topLabel, withOffset: contentBackgroundViewInsets.top + topLabelInsets.bottom)
+        contentBackgroundView.autoPinEdge(.Top, toEdge: .Bottom, ofView: topLabel, withOffset: contentBackgroundViewInsets.top)
         contentBackgroundView.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: contentBackgroundViewInsets.left, relation: contentBackgroundViewLeftRelation)
         contentBackgroundView.autoPinEdge(.Right, toEdge: .Right, ofView: contentView, withOffset: -contentBackgroundViewInsets.right, relation: contentBackgroundViewRightRelation)
 
@@ -197,13 +212,13 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
         rightContentView.autoPinEdge(.Right, toEdge: .Right, ofView: contentView)
         
         // bottomLabel
-        bottomLabel.autoPinEdge(.Top, toEdge: .Bottom, ofView: contentBackgroundView, withOffset: contentBackgroundViewInsets.bottom + bottomLabelInsets.top)
+        bottomLabel.autoPinEdge(.Top, toEdge: .Bottom, ofView: contentBackgroundView, withOffset: contentBackgroundViewInsets.bottom)
         bottomLabel.autoPinEdge(.Left, toEdge: .Left, ofView: contentView, withOffset: bottomLabelInsets.left)
         bottomLabel.autoPinEdge(.Right, toEdge: .Right, ofView: contentView, withOffset: -bottomLabelInsets.right)
         
         // footerContentView
-        footerContentView.autoPinEdge(.Top, toEdge: .Bottom, ofView: bottomLabel, withOffset: bottomLabelInsets.bottom)
-        footerContentView.autoPinEdgesToSuperviewEdgesWithInsets(UIEdgeInsetsZero, excludingEdge: .Top)
+        footerContentView.autoPinEdge(.Top, toEdge: .Bottom, ofView: bottomLabel)
+        footerContentView.autoPinEdgesToSuperviewEdgesWithInsets(footerContentInsets, excludingEdge: .Top)
         footerContentView.setContentHuggingPriority(999, forAxis: .Vertical)
     }
     
@@ -222,5 +237,17 @@ public class MessageKitTableViewCell: UITableViewCell, ContextLabelDelegate {
         contextLabelTouched = false
         
         delegate?.messageTableViewCell(self, didSelectContextLabelText: text)
+    }
+}
+
+public class MessageLabel: UILabel {
+    
+    public var contentInsets: UIEdgeInsets = UIEdgeInsetsZero
+    
+    public override func intrinsicContentSize() -> CGSize {
+        let width = super.intrinsicContentSize().width
+        let height = (text?.characters.count > 0) ? contentInsets.top + super.intrinsicContentSize().height + contentInsets.bottom : 0
+        
+        return CGSize(width: width, height: height)
     }
 }

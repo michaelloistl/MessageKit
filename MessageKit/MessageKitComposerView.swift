@@ -17,7 +17,7 @@ public protocol MessageKitComposerViewDelegate {
     func messageKitComposerView(sender: MessageKitComposerView, touchedUpInsideLeftButton button: UIButton)
     func messageKitComposerView(sender: MessageKitComposerView, touchedUpInsideRightButton button: UIButton)
     
-    func messageKitComposerView(sender: MessageKitComposerView, didChangeComposerHeight height: CGFloat)
+    func messageKitComposerView(sender: MessageKitComposerView, didChangeComposerHeightFrom from: CGFloat, to: CGFloat)
     func messageKitComposerView(sender: MessageKitComposerView, didChangeKeyboardRect rect: CGRect)
     
     func messageKitComposerView(sender: MessageKitComposerView, textViewDidBeginEditing textView: UITextView)
@@ -78,12 +78,12 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         }
     }
     
-    private var _composerHeight: CGFloat = 44 {
+    private var _composerHeight: CGFloat = 0 {
         didSet {
             updateFrame()
         
             if _composerHeight != oldValue {
-                delegate?.messageKitComposerView(self, didChangeComposerHeight: _composerHeight)
+                delegate?.messageKitComposerView(self, didChangeComposerHeightFrom: oldValue, to: _composerHeight)
             }
         }
     }
@@ -171,7 +171,7 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         return _label
     }()
     
-    lazy var topBorderView: UIView = {
+    public lazy var topBorderView: UIView = {
         let _view = UIView(forAutoLayout: ())
         _view.backgroundColor = UIColor(white: 0, alpha: 0.1)
         
@@ -180,14 +180,22 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
     
     public lazy var topOuterContentView: UIView = {
         let _view = UIView(forAutoLayout: ())
-        _view.backgroundColor = UIColor.redColor()
+        _view.backgroundColor = UIColor.whiteColor()
         
         return _view
     }()
     
+    
     public lazy var topInnerContentView: UIView = {
         let _view = UIView(forAutoLayout: ())
-        _view.backgroundColor = UIColor.blueColor()
+        _view.backgroundColor = UIColor.whiteColor()
+        
+        return _view
+    }()
+
+    public lazy var bottomInnerContentView: UIView = {
+        let _view = UIView(forAutoLayout: ())
+        _view.backgroundColor = UIColor.whiteColor()
         
         return _view
     }()
@@ -213,6 +221,8 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         addSubview(leftButton)
         addSubview(inputBackgroundView)
         addSubview(rightButton)
+        
+        addSubview(bottomInnerContentView)
         
         inputBackgroundView.addSubview(placeholderLabel)
         inputBackgroundView.addSubview(textView)
@@ -248,7 +258,7 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         let inputBackgroundViewSizeHeight = _composerHeight - inputBackgroundViewInsets.top - inputBackgroundViewInsets.bottom
         let inputBackgroundViewSizeWidth = bounds.width - inputBackgroundViewInsets.left - inputBackgroundViewInsets.right
         let inputBackgroundViewOriginX = inputBackgroundViewInsets.left
-        let inputBackgroundViewOriginY = bounds.height - inputBackgroundViewInsets.bottom - inputBackgroundViewSizeHeight
+        let inputBackgroundViewOriginY = bounds.height - inputBackgroundViewInsets.bottom - inputBackgroundViewSizeHeight - bottomInnerContentView.bounds.height
         
         inputBackgroundView.frame = CGRectMake(inputBackgroundViewOriginX, inputBackgroundViewOriginY, inputBackgroundViewSizeWidth, inputBackgroundViewSizeHeight)
         
@@ -272,22 +282,20 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         placeholderLabel.frame = CGRectMake(placeholderLabelOriginX, placeholderLabelOriginY, placeholderLabelSizeWidth, placeholderLabelSizeHeight)
         
         // leftButton
-        if !leftButton.hidden {
-            leftButton.sizeToFit()
-            let leftButtonCenterX = (inputBackgroundViewInsets.left / 2) + leftButtonCenterOffset.horizontal
-            let leftButtonCenterY = (bounds.height - (minComposerHeight / 2)) + leftButtonCenterOffset.vertical
-            
-            leftButton.center = CGPointMake(leftButtonCenterX, leftButtonCenterY)
-        }
+        leftButton.sizeToFit()
+        let leftButtonCenterX = (inputBackgroundViewInsets.left / 2) + leftButtonCenterOffset.horizontal
+        let leftButtonCenterY = (bounds.height - (minComposerHeight / 2)) + leftButtonCenterOffset.vertical - bottomInnerContentView.bounds.height
+        
+        leftButton.center = CGPointMake(leftButtonCenterX, leftButtonCenterY)
         
         // rightButton
-        if !rightButton.hidden {
-            rightButton.sizeToFit()
-            let rightButtonCenterX = (bounds.width - inputBackgroundViewInsets.right / 2) + rightButtonCenterOffset.horizontal
-            let rightButtonCenterY = (bounds.height - (minComposerHeight / 2)) + rightButtonCenterOffset.vertical
-            
-            rightButton.center = CGPointMake(rightButtonCenterX, rightButtonCenterY)
-        }
+        rightButton.sizeToFit()
+        let rightButtonCenterX = (bounds.width - inputBackgroundViewInsets.right / 2) + rightButtonCenterOffset.horizontal
+        let rightButtonCenterY = (bounds.height - (minComposerHeight / 2)) + rightButtonCenterOffset.vertical - bottomInnerContentView.bounds.height
+        let width = rightButton.bounds.width
+        
+        rightButton.frame.size.width = width * 1.475
+        rightButton.center = CGPointMake(rightButtonCenterX, rightButtonCenterY)
         
         // contentView
     }
@@ -312,6 +320,14 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         layoutSubviews()
     }
     
+    public override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
+        super.touchesBegan(touches, withEvent: event)
+        
+        NSLog("touchesBegan")
+        
+        becomeFirstResponder()
+    }
+    
     // MARK: - Methods
     
     func setupConstraints() {
@@ -323,12 +339,18 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         topBorderView.autoPinEdge(.Top, toEdge: .Bottom, ofView: topOuterContentView)
         topBorderView.autoPinEdge(.Left, toEdge: .Left, ofView: self)
         topBorderView.autoPinEdge(.Right, toEdge: .Right, ofView: self)
-        topBorderView.autoSetDimension(.Height, toSize: 1)
+        topBorderView.autoSetDimension(.Height, toSize: 1.0 / UIScreen.mainScreen().scale)
         
         // topInnerContentView
         topInnerContentView.autoPinEdge(.Top, toEdge: .Bottom, ofView: topBorderView)
         topInnerContentView.autoPinEdge(.Left, toEdge: .Left, ofView: self)
         topInnerContentView.autoPinEdge(.Right, toEdge: .Right, ofView: self)
+        
+        // bottomInnerContentView
+//        bottomInnerContentView.autoPinEdge(.Top, toEdge: .Bottom, ofView: inputBackgroundView)
+        bottomInnerContentView.autoPinEdge(.Bottom, toEdge: .Bottom, ofView: self)
+        bottomInnerContentView.autoPinEdge(.Left, toEdge: .Left, ofView: self)
+        bottomInnerContentView.autoPinEdge(.Right, toEdge: .Right, ofView: self)
     }
     
     func updateFrame() {
@@ -337,7 +359,7 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
             let bottomLayoutGuideLength = viewController?.bottomLayoutGuide.length ?? 0
             let keyBoardMinY = (CGRectGetMinY(_keyBoardRect) > 0) ? CGRectGetMinY(_keyBoardRect) : CGRectGetHeight(superview.bounds)
             
-            let sizeHeight: CGFloat = _composerHeight + topInnerContentView.bounds.height + topBorderView.bounds.height + topOuterContentView.bounds.height
+            let sizeHeight: CGFloat = _composerHeight + topInnerContentView.bounds.height + topBorderView.bounds.height + topOuterContentView.bounds.height + bottomInnerContentView.bounds.height
             let sizeWidth: CGFloat = CGRectGetWidth(superview.bounds)
             let originX: CGFloat = 0
             let originMaxY = CGRectGetHeight(superview.bounds) - sizeHeight - bottomLayoutGuideLength
@@ -347,7 +369,12 @@ public class MessageKitComposerView: UIView, UITextViewDelegate {
         }
     }
     
-    public func resetComposer() {
+    public func dismiss() {
+        _keyBoardRect = CGRectZero
+        resignFirstResponder()
+    }
+    
+    public func reset() {
         textView.text = nil
         setComposerHeightWithText(nil)
         
