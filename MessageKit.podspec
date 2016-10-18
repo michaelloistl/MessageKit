@@ -16,5 +16,5 @@ Pod::Spec.new do |s|
     s.requires_arc = true
 
     s.dependency 'PureLayout', '~> 3.0'
-    s.dependency 'ContextLabel', '~> 1.0'
+    s.dependency 'ContextLabel', '~> 0.3'
 end
