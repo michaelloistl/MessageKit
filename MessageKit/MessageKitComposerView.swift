@@ -111,10 +111,10 @@ open class MessageKitComposerView: UIView, UITextViewDelegate {
     
     open lazy var leftButton: UIButton = {
         let _button = UIButton()
-        _button.setTitle("Upload", for: UIControlState())
-        _button.setTitleColor(UIColor.black, for: UIControlState())
+        _button.setTitle("Upload", for: .normal)
+        _button.setTitleColor(.black, for: .normal)
         _button.setTitleColor(UIColor.black.withAlphaComponent(0.5), for: .disabled)
-        _button.titleLabel?.font = UIFont.systemFont(ofSize: 17)
+        _button.titleLabel?.font = .systemFont(ofSize: 17)
         
         _button.addTarget(self, action: #selector(MessageKitComposerView.leftButtonTouchedUpInside(_:)), for: .touchUpInside)
         
@@ -123,10 +123,10 @@ open class MessageKitComposerView: UIView, UITextViewDelegate {
 
     open lazy var rightButton: UIButton = {
         let _button = UIButton()
-        _button.setTitle("Send", for: UIControlState())
-        _button.setTitleColor(UIColor.black, for: UIControlState())
+        _button.setTitle("Send", for: .normal)
+        _button.setTitleColor(.black, for: .normal)
         _button.setTitleColor(UIColor.black.withAlphaComponent(0.5), for: .disabled)
-        _button.titleLabel?.font = UIFont.systemFont(ofSize: 17)
+        _button.titleLabel?.font = .systemFont(ofSize: 17)
         _button.isEnabled = false
         
         _button.addTarget(self, action: #selector(MessageKitComposerView.rightButtonTouchedUpInside(_:)), for: .touchUpInside)
